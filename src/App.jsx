@@ -52,10 +52,7 @@ const IBtn = ({ children, onClick, disabled, danger }) => (
 );
 
 const DragHandle = () => (
-  <div style={{
-    display: 'flex', flexDirection: 'column', gap: 4,
-    padding: '6px 10px', flexShrink: 0,
-  }}>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px', flexShrink: 0 }}>
     <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
     <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
     <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
@@ -64,8 +61,6 @@ const DragHandle = () => (
 
 function DraggablePlayerList({ names, setNames }) {
   const [dragState, setDragState] = useState(null);
-  // dragState = { idx, startY, currentY, itemH }
-  const listRef = useRef(null);
   const itemRefs = useRef([]);
 
   const getClientY = (e) => e.touches ? e.touches[0].clientY : e.clientY;
@@ -79,15 +74,10 @@ function DraggablePlayerList({ names, setNames }) {
 
   useEffect(() => {
     if (!dragState) return;
-
     const onMove = (e) => {
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const dy = clientY - dragState.startY;
-      const newIdx = Math.max(0, Math.min(
-        names.length - 1,
-        dragState.idx + Math.round(dy / dragState.itemH)
-      ));
-
+      const newIdx = Math.max(0, Math.min(names.length - 1, dragState.idx + Math.round(dy / dragState.itemH)));
       if (newIdx !== dragState.idx) {
         setNames(prev => {
           const next = [...prev];
@@ -95,10 +85,8 @@ function DraggablePlayerList({ names, setNames }) {
           next.splice(newIdx, 0, moved);
           return next;
         });
-        // Recalculate startY so delta resets from new position
         setDragState(s => ({
-          ...s,
-          idx: newIdx,
+          ...s, idx: newIdx,
           startY: s.startY + (newIdx - s.idx) * s.itemH,
           currentY: clientY,
         }));
@@ -106,9 +94,7 @@ function DraggablePlayerList({ names, setNames }) {
         setDragState(s => ({ ...s, currentY: clientY }));
       }
     };
-
     const onEnd = () => setDragState(null);
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onEnd);
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -122,38 +108,24 @@ function DraggablePlayerList({ names, setNames }) {
   }, [dragState, names.length]);
 
   return (
-    <div ref={listRef} style={{ position: 'relative' }}>
+    <div>
       {names.map((n, i) => {
         const isDragging = dragState?.idx === i;
         const offsetY = isDragging ? (dragState.currentY - dragState.startY) : 0;
-
         return (
-          <div
-            key={n + i}
-            ref={el => itemRefs.current[i] = el}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '13px 10px 13px 4px', marginBottom: 8, borderRadius: 14,
-              background: isDragging ? T.s3 : T.s2,
-              border: `1.5px solid ${isDragging ? T.gold : T.border}`,
-              transform: `translateY(${offsetY}px) scale(${isDragging ? 1.03 : 1})`,
-              boxShadow: isDragging
-                ? `0 12px 40px rgba(0,0,0,0.6), 0 0 24px ${T.gGlow}`
-                : 'none',
-              transition: isDragging
-                ? 'box-shadow 0.1s, border-color 0.1s, background 0.1s'
-                : 'transform 0.2s ease, box-shadow 0.2s',
-              position: 'relative',
-              zIndex: isDragging ? 100 : 1,
-              touchAction: 'none',
-              userSelect: 'none',
-            }}
-          >
-            <div
-              onMouseDown={e => startDrag(e, i)}
-              onTouchStart={e => startDrag(e, i)}
-              style={{ cursor: 'grab', touchAction: 'none', flexShrink: 0 }}
-            >
+          <div key={n + i} ref={el => itemRefs.current[i] = el} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '13px 10px 13px 4px', marginBottom: 8, borderRadius: 14,
+            background: isDragging ? T.s3 : T.s2,
+            border: `1.5px solid ${isDragging ? T.gold : T.border}`,
+            transform: `translateY(${offsetY}px) scale(${isDragging ? 1.03 : 1})`,
+            boxShadow: isDragging ? `0 12px 40px rgba(0,0,0,0.6), 0 0 24px ${T.gGlow}` : 'none',
+            transition: isDragging ? 'box-shadow 0.1s, border-color 0.1s' : 'transform 0.2s ease, box-shadow 0.2s',
+            position: 'relative', zIndex: isDragging ? 100 : 1,
+            touchAction: 'none', userSelect: 'none',
+          }}>
+            <div onMouseDown={e => startDrag(e, i)} onTouchStart={e => startDrag(e, i)}
+              style={{ cursor: 'grab', touchAction: 'none', flexShrink: 0 }}>
               <DragHandle />
             </div>
             <span style={{ color: T.sub, fontSize: 13, minWidth: 20, textAlign: 'center', fontWeight: 600 }}>{i + 1}</span>
@@ -204,24 +176,23 @@ export default function BankGame() {
     setPhase('game');
   };
 
+  // Always cycle to next unbanked player — no end based on position
   const nextCI = (ps, from) => {
-    if (early) return from + 1 < ps.length ? from + 1 : -1;
     for (let c = 1; c <= ps.length; c++) {
       const i = (from + c) % ps.length;
       if (!ps[i].banked) return i;
     }
-    return -1;
+    return -1; // everyone banked
   };
 
   const endRound = (ps, sevened) => {
-    const final = ps
-      .map(p => ({
-        ...p,
-        bankPts: early ? p.bankPts + p.roundPts : p.bankPts,
-        roundPts: 0,
-        banked: false,
-      }))
-      .sort((a, b) => b.bankPts - a.bankPts);
+    const final = ps.map(p => ({
+      ...p,
+      // In early rounds, unbanked players still get their roundPts added to bank
+      bankPts: p.banked ? p.bankPts : (early ? p.bankPts + p.roundPts : p.bankPts),
+      roundPts: 0,
+      banked: false,
+    })).sort((a, b) => b.bankPts - a.bankPts);
     setPlayers(final); setCi(0); setSnap(null); setPreRoll(null);
     setRdNote(sevened
       ? '💥 Seven! Unbanked players lose their round points.'
@@ -230,7 +201,8 @@ export default function BankGame() {
   };
 
   const advance = (ps, from) => {
-    if (!early && ps.every(p => p.banked)) { endRound(ps, false); return; }
+    // Round only ends when everyone has banked
+    if (ps.every(p => p.banked)) { endRound(ps, false); return; }
     const n = nextCI(ps, from);
     if (n === -1) { endRound(ps, false); return; }
     setCi(n); setDice(''); setScr('roll'); setRolled(null); setNote(''); setSnap(null);
@@ -254,13 +226,10 @@ export default function BankGame() {
     const v = parseInt(dice);
     if (!dice || isNaN(v) || v < 2 || v > 12) return;
 
-    setPreRoll({
-      players: JSON.parse(JSON.stringify(players)),
-      ci,
-    });
-
+    setPreRoll({ players: JSON.parse(JSON.stringify(players)), ci });
     setDice(''); setRolled(v);
 
+    // Early rounds: 7 = 70 pts, NO round end, keep playing
     if (early) {
       const pts = v === 7 ? 70 : v;
       const ps = players.map((p, i) => i === ci ? { ...p, roundPts: p.roundPts + pts } : p);
@@ -270,6 +239,7 @@ export default function BankGame() {
       return;
     }
 
+    // Round 4+: 7 ends the round immediately
     if (v === 7) {
       const ps = players.map(p => p.banked ? p : { ...p, roundPts: 0 });
       setPlayers(ps); setSnap(ps);
@@ -288,8 +258,7 @@ export default function BankGame() {
 
   const doRedoRoll = () => {
     if (!preRoll) return;
-    setPlayers(preRoll.players);
-    setCi(preRoll.ci);
+    setPlayers(preRoll.players); setCi(preRoll.ci);
     setDice(''); setScr('roll');
     setRolled(null); setNote(''); setSnap(null); setPreRoll(null);
   };
@@ -301,16 +270,13 @@ export default function BankGame() {
     setDice(''); setRolled(null); setSnap(null); setPreRoll(null);
   };
 
-  const wrap = {
-    background: T.bg,
-    minHeight: '100vh',
-    width: '100%',
-    fontFamily: "'Trebuchet MS', 'Segoe UI', sans-serif",
-    color: T.text,
-    userSelect: 'none',
-  };
-
   const isSeven = !early && scr === 'rolled' && rolled === 7;
+
+  const wrap = {
+    background: T.bg, minHeight: '100vh', width: '100%',
+    fontFamily: "'Trebuchet MS', 'Segoe UI', sans-serif",
+    color: T.text, userSelect: 'none', overflowX: 'hidden',
+  };
 
   // ══ SETUP ══
   if (phase === 'setup') return (
@@ -318,10 +284,8 @@ export default function BankGame() {
       <div style={{ padding: '28px 18px 40px' }}>
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
           <div style={{
-            fontSize: 88, fontWeight: 900, color: T.gold,
-            letterSpacing: -5, lineHeight: 1,
-            fontFamily: "'Impact', 'Arial Black', fantasy",
-            textShadow: `0 0 60px ${T.gGlow}`,
+            fontSize: 88, fontWeight: 900, color: T.gold, letterSpacing: -5, lineHeight: 1,
+            fontFamily: "'Impact', 'Arial Black', fantasy", textShadow: `0 0 60px ${T.gGlow}`,
           }}>BANK</div>
           <div style={{ color: T.sub, fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', marginTop: 4 }}>
             The Dice Game
@@ -330,29 +294,23 @@ export default function BankGame() {
 
         <div style={{ background: T.s1, borderRadius: 20, padding: 18, marginBottom: 14 }}>
           <div style={{ color: T.sub, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Players {names.length > 0 ? `· ${names.length}` : ''}</span>
+            <span>Players{names.length > 0 ? ` · ${names.length}` : ''}</span>
             {names.length > 1 && <span style={{ color: T.border, fontWeight: 400, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>☰ drag to reorder</span>}
           </div>
-
           <DraggablePlayerList names={names} setNames={setNames} />
-
           <div style={{ display: 'flex', gap: 8, marginTop: names.length ? 10 : 0 }}>
-            <input
-              value={nameInp}
-              onChange={e => setNameInp(e.target.value)}
+            <input value={nameInp} onChange={e => setNameInp(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addName()}
-              placeholder="Enter player name..."
-              autoComplete="off"
+              placeholder="Enter player name..." autoComplete="off"
               style={{
                 flex: 1, padding: '13px 15px', borderRadius: 12,
                 border: `1px solid ${T.border}`, background: T.s2,
                 color: T.text, fontSize: 16, outline: 'none', fontFamily: 'inherit',
-              }}
-            />
+              }} />
             <button onClick={addName} style={{
               padding: '0 22px', borderRadius: 12, border: 'none',
-              background: T.gold, color: '#000', fontWeight: 700,
-              fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
+              background: T.gold, color: '#000', fontWeight: 700, fontSize: 15,
+              cursor: 'pointer', fontFamily: 'inherit',
             }}>Add</button>
           </div>
         </div>
@@ -369,29 +327,19 @@ export default function BankGame() {
                   padding: '16px 0', borderRadius: 12, border: `2px solid ${active ? T.gold : T.border}`,
                   background: active ? T.gFade : T.s2, color: active ? T.gold : T.text,
                   fontWeight: 900, fontSize: 26, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: active ? `0 0 16px ${T.gGlow}` : 'none',
-                  transition: 'all 0.15s',
+                  boxShadow: active ? `0 0 16px ${T.gGlow}` : 'none', transition: 'all 0.15s',
                 }}>{r}</button>
               );
             })}
           </div>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={customR}
-            onChange={e => {
-              const v = e.target.value.replace(/\D/g, '');
-              setCustomR(v); setUsingCustom(!!v);
-            }}
+          <input type="text" inputMode="numeric" pattern="[0-9]*" value={customR}
+            onChange={e => { const v = e.target.value.replace(/\D/g, ''); setCustomR(v); setUsingCustom(!!v); }}
             placeholder="Custom number of rounds..."
             style={{
               width: '100%', padding: '13px 15px', borderRadius: 12, boxSizing: 'border-box',
               border: `2px solid ${usingCustom ? T.gold : T.border}`,
-              background: T.s2, color: T.text, fontSize: 16,
-              outline: 'none', fontFamily: 'inherit',
-            }}
-          />
+              background: T.s2, color: T.text, fontSize: 16, outline: 'none', fontFamily: 'inherit',
+            }} />
         </div>
 
         <button onClick={startGame} disabled={names.length < 2} style={{
@@ -401,8 +349,7 @@ export default function BankGame() {
           fontWeight: 900, fontSize: 18, letterSpacing: 1,
           cursor: names.length >= 2 ? 'pointer' : 'not-allowed',
           fontFamily: "'Impact', 'Arial Black', fantasy",
-          boxShadow: names.length >= 2 ? `0 0 32px ${T.gGlow}` : 'none',
-          transition: 'all 0.2s',
+          boxShadow: names.length >= 2 ? `0 0 32px ${T.gGlow}` : 'none', transition: 'all 0.2s',
         }}>
           {names.length < 2 ? 'Add at least 2 players to start' : '▶  START GAME'}
         </button>
@@ -449,6 +396,7 @@ export default function BankGame() {
   return (
     <div style={wrap}>
 
+      {/* Top bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '13px 18px', background: T.s1, borderBottom: `1px solid ${T.border}`,
@@ -474,6 +422,7 @@ export default function BankGame() {
         </div>
       </div>
 
+      {/* Scoreboard */}
       <div style={{ padding: '10px 16px 6px' }}>
         {players.map((p, i) => (
           <div key={p.id} style={{
@@ -498,8 +447,10 @@ export default function BankGame() {
         ))}
       </div>
 
+      {/* Action area */}
       <div style={{ padding: '8px 0 28px' }}>
 
+        {/* ROUND END */}
         {scr === 'roundEnd' && (
           <div style={{ padding: '18px 16px', textAlign: 'center' }}>
             <div style={{
@@ -520,6 +471,7 @@ export default function BankGame() {
           </div>
         )}
 
+        {/* ROLLED */}
         {scr === 'rolled' && (
           <div style={{ padding: '14px 16px' }}>
             <div style={{
@@ -539,9 +491,8 @@ export default function BankGame() {
 
             <button onClick={doRedoRoll} style={{
               width: '100%', padding: 14, borderRadius: 14, border: `2px solid ${T.red}`,
-              background: T.rFade, color: T.red,
-              fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
-              marginBottom: 10,
+              background: T.rFade, color: T.red, fontWeight: 700, fontSize: 15,
+              cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
             }}>
               ↩ Redo Last Roll — entered wrong number?
             </button>
@@ -549,23 +500,20 @@ export default function BankGame() {
             {isSeven ? (
               <button onClick={() => endRound(snap ?? players, true)} style={{
                 width: '100%', padding: 18, borderRadius: 14, border: `2px solid ${T.red}`,
-                background: T.rFade, color: T.red,
-                fontWeight: 900, fontSize: 18, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                End Round →
-              </button>
+                background: T.rFade, color: T.red, fontWeight: 900, fontSize: 18,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>End Round →</button>
             ) : (
               <button onClick={doNext} style={{
                 width: '100%', padding: 18, borderRadius: 14, border: `2px solid ${T.border}`,
-                background: T.s2, color: T.text,
-                fontWeight: 700, fontSize: 17, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                Next Player →
-              </button>
+                background: T.s2, color: T.text, fontWeight: 700, fontSize: 17,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Next Player →</button>
             )}
           </div>
         )}
 
+        {/* ROLL INPUT */}
         {scr === 'roll' && (
           <>
             <div style={{ padding: '2px 16px 10px', textAlign: 'center' }}>
@@ -583,15 +531,15 @@ export default function BankGame() {
               <div style={{ color: T.sub, fontSize: 11, marginBottom: 2 }}>Dice Total</div>
               <div style={{
                 fontSize: 64, fontWeight: 900, lineHeight: 1, minHeight: 64,
-                color: dice ? T.gold : T.border,
-                fontFamily: "'Impact', fantasy",
+                color: dice ? T.gold : T.border, fontFamily: "'Impact', fantasy",
                 textShadow: dice ? `0 0 30px ${T.gGlow}` : 'none',
               }}>
                 {dice || '—'}
               </div>
             </div>
 
-            {!early && !cur.banked && (
+            {/* BANK + DOUBLES — all rounds */}
+            {!cur.banked && (
               <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={doBank} style={{
                   width: '100%', padding: '14px 0', borderRadius: 14,
@@ -600,14 +548,16 @@ export default function BankGame() {
                 }}>
                   🏦  BANK — {cur.bankPts + cur.roundPts} pts safe
                 </button>
-                <button onClick={doDoubles} style={{
-                  width: '100%', padding: '14px 0', borderRadius: 14,
-                  border: `2px solid ${T.gold}`, background: T.gFade, color: T.gold,
-                  fontWeight: 900, fontSize: 17, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 0 20px ${T.gGlow}`,
-                }}>
-                  🎲🎲  DOUBLES — Double Bank ({cur.bankPts * 2} pts)
-                </button>
+                {!early && (
+                  <button onClick={doDoubles} style={{
+                    width: '100%', padding: '14px 0', borderRadius: 14,
+                    border: `2px solid ${T.gold}`, background: T.gFade, color: T.gold,
+                    fontWeight: 900, fontSize: 17, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: `0 0 20px ${T.gGlow}`,
+                  }}>
+                    🎲🎲  DOUBLES — Double Bank ({cur.bankPts * 2} pts)
+                  </button>
+                )}
               </div>
             )}
 
